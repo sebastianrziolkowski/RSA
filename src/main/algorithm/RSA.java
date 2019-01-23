@@ -1,12 +1,25 @@
 package main.algorithm;
 
-
 import javax.crypto.Cipher;
 import java.security.*;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class RSA {
 
     private KeyPair keyPair;
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
+    private String message;
+    private int keySize;
+    private String cryptogram;
 
 
     public PrivateKey getPrivateKey() {
@@ -17,15 +30,21 @@ public class RSA {
         return publicKey;
     }
 
-    private PublicKey publicKey;
-
-    public void setPrivateKey(PrivateKey privateKey) {
-        this.privateKey = privateKey;
+    public void setPrivateKey(String keyAsString) throws Exception {
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(keyAsString));
+        PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
+        this.privateKey = privKey;
     }
 
-    private PrivateKey privateKey;
-    private String message;
-    private int keySize;
+    public String getCryptogram() {
+        return cryptogram;
+    }
+
+    public void setCryptogram(String cryptogram) {
+        this.cryptogram = cryptogram;
+    }
+
 
     public RSA(String message, int keySize) throws NoSuchAlgorithmException {
 
@@ -41,23 +60,25 @@ public class RSA {
 
     public KeyPair buildKeyPair() throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
+        keyPairGenerator.initialize(2048, new SecureRandom());
         return keyPairGenerator.genKeyPair();
     }
 
-    public byte[] encrypt() throws Exception {
+    public String encrypt() throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
-        return cipher.doFinal(message.getBytes());
+        return Base64.getEncoder().encodeToString(cipher.doFinal(message.getBytes(UTF_8)));
     }
 
 
-    public byte[] decrypt(byte [] encrypted) throws Exception {
+    public String decrypt(String messageToDecrypt) throws Exception {
+
+        byte[] bytes = Base64.getDecoder().decode(messageToDecrypt);
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
 
-        return cipher.doFinal(encrypted);
+        return new String(cipher.doFinal(bytes), UTF_8);
     }
 
 }

@@ -52,7 +52,8 @@ public class RSA_interface {
     private Label privateKeyLabel = new Label("Private key:");
     private Label publicKeyLabel = new Label("Public key:");
     private Label cryptogramLabel = new Label("Cryptogram:");
-    private VBox outPutBox = new VBox(cryptogramLabel, privateKeyLabel, publicKeyLabel);
+    private Label messageLabel = new Label("Message: ");
+    private VBox outPutBox = new VBox(cryptogramLabel, privateKeyLabel, publicKeyLabel, messageLabel);
 
     //RSA
     private RSA rsa;
@@ -91,7 +92,7 @@ public class RSA_interface {
                 try {
                     keyFile = fileChooserKey.showOpenDialog(mainStage);
                     FileReader fileReader = new FileReader();
-                    inputKeyField.setText("Public key: " + fileReader.readFile(keyFile.getPath()));
+                    inputKeyField.setText(fileReader.readFile(keyFile.getPath()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -110,10 +111,11 @@ public class RSA_interface {
                 else
                 {
                     try {
-                        rsa = new RSA(inputField.getText(),2048);
-
-
-                        cryptogramLabel.setText("Cryptogram: ");
+                        messageLabel.setText("Message: ");
+                        String messageToCrypt = inputField.getText();
+                        rsa = new RSA(messageToCrypt,2048);
+                        rsa.setCryptogram(rsa.encrypt());
+                        cryptogramLabel.setText("Cryptogram: " + rsa.getCryptogram());
 
                         String privateKeyPemStr = new String(Base64.getEncoder().encode(rsa.getPrivateKey().getEncoded()));
                         privateKeyLabel.setText("Private Key: " + privateKeyPemStr);
@@ -144,7 +146,8 @@ public class RSA_interface {
 
 
                 try {
-                    rsa = new RSA(inputField.getText(),2048);
+                    rsa.setPrivateKey(inputKeyField.getText());
+                    messageLabel.setText("Message: " + rsa.decrypt(rsa.getCryptogram()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
