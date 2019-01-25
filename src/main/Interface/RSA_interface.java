@@ -24,7 +24,7 @@ public class RSA_interface {
 
     //Main
     private VBox mainBox = new VBox();
-    private Scene rsaScene = new Scene(mainBox,300,250);
+    private Scene rsaScene = new Scene(mainBox,320,250);
     public Stage mainStage = new Stage();
 
 
@@ -53,7 +53,14 @@ public class RSA_interface {
     private Label publicKeyLabel = new Label("Public key:");
     private Label cryptogramLabel = new Label("Cryptogram:");
     private Label messageLabel = new Label("Message: ");
-    private VBox outPutBox = new VBox(cryptogramLabel, privateKeyLabel, publicKeyLabel, messageLabel);
+
+    //Mess to decrypt
+    private Button messToDecryptButton = new Button("Load cryptogram");
+    private TextField messToDecryptField = new TextField();
+    private HBox decryptBox = new HBox(messToDecryptButton, messToDecryptField);
+    private VBox outPutBox = new VBox(decryptBox, cryptogramLabel, privateKeyLabel, publicKeyLabel, messageLabel);
+
+
 
     //RSA
     private RSA rsa;
@@ -63,6 +70,10 @@ public class RSA_interface {
 
     public RSA_interface()
     {
+
+        decryptBox.setSpacing(15);
+        decryptBox.setPadding(new Insets(10,0,10,10));
+        messToDecryptField.setPrefSize(170,30);
         //Input Box
         inputField.setPrefSize(170,30);
         inputBox.setPadding(new Insets(20,0,0,10));
@@ -100,6 +111,19 @@ public class RSA_interface {
         });
 
 
+        messToDecryptButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    keyFile = fileChooserKey.showOpenDialog(mainStage);
+                    FileReader fileReader = new FileReader();
+                    messToDecryptField.setText(fileReader.readFile(keyFile.getPath()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
 
         encypteButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -116,21 +140,29 @@ public class RSA_interface {
                         rsa = new RSA(messageToCrypt,2048);
                         rsa.setCryptogram(rsa.encrypt());
                         cryptogramLabel.setText("Cryptogram: " + rsa.getCryptogram());
+                        messToDecryptField.setText("");
+                        messToDecryptField.setText(rsa.getCryptogram());
 
-                        String privateKeyPemStr = new String(Base64.getEncoder().encode(rsa.getPrivateKey().getEncoded()));
+                        try (PrintWriter out = new PrintWriter("cryptogram")) {
+                            out.println(rsa.getCryptogram());
+                        }
+
+                        String privateKeyPemStr = rsa.savePrivateKey();
                         privateKeyLabel.setText("Private Key: " + privateKeyPemStr);
                         inputKeyField.setText(privateKeyPemStr);
 
                         try (PrintWriter out = new PrintWriter("privateKey")) {
-                            out.println(new String(Base64.getEncoder().encode(rsa.getPrivateKey().getEncoded())));
+                            out.println(privateKeyPemStr);
                         }
 
-                        String publicKeyPemStr = new String(Base64.getEncoder().encode(rsa.getPublicKey().getEncoded()));
+                        String publicKeyPemStr = rsa.savePublicKey();
                         publicKeyLabel.setText("Private Key: " + publicKeyPemStr);
 
                         try (PrintWriter out = new PrintWriter("publicKey")) {
-                            out.println(new String(Base64.getEncoder().encode(rsa.getPublicKey().getEncoded())));
+                            out.println(publicKeyPemStr);
                         }
+
+
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -146,8 +178,10 @@ public class RSA_interface {
 
 
                 try {
-                    rsa.setPrivateKey(inputKeyField.getText());
-                    messageLabel.setText("Message: " + rsa.decrypt(rsa.getCryptogram()));
+
+                    rsa.loadPrivateKey(inputKeyField.getText());
+                    rsa.setCryptogram(messToDecryptField.getText());
+                    messageLabel.setText("Message: " + rsa.decrypt());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -163,7 +197,7 @@ public class RSA_interface {
         decrypteButton.setPrefSize(100,55);
 
 
-        mainBox.getChildren().addAll(inputBox,inputKeyBox,  enDeButtonsBox, outPutBox);
+        mainBox.getChildren().addAll(inputBox,enDeButtonsBox, inputKeyBox, outPutBox);
         mainStage.setTitle("RSA");
         mainStage.setScene(rsaScene);
     }

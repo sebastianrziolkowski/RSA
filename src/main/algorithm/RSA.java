@@ -5,8 +5,10 @@ import java.security.*;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 
@@ -28,13 +30,6 @@ public class RSA {
 
     public PublicKey getPublicKey() {
         return publicKey;
-    }
-
-    public void setPrivateKey(String keyAsString) throws Exception {
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(keyAsString));
-        PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
-        this.privateKey = privKey;
     }
 
     public String getCryptogram() {
@@ -68,17 +63,46 @@ public class RSA {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
-        return Base64.getEncoder().encodeToString(cipher.doFinal(message.getBytes(UTF_8)));
+        cryptogram = Base64.getEncoder().encodeToString(cipher.doFinal(message.getBytes(UTF_8)));
+        return cryptogram;
     }
 
 
-    public String decrypt(String messageToDecrypt) throws Exception {
+    public String decrypt() throws Exception {
 
-        byte[] bytes = Base64.getDecoder().decode(messageToDecrypt);
+        byte[] bytes = Base64.getDecoder().decode(cryptogram);
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
 
         return new String(cipher.doFinal(bytes), UTF_8);
+    }
+
+
+    // KEY MANIPULATE
+
+    public String savePrivateKey() throws GeneralSecurityException {
+        KeyFactory fact = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec spec = fact.getKeySpec(privateKey, PKCS8EncodedKeySpec.class);
+        byte[] packed = spec.getEncoded();
+        String key64 = Base64.getEncoder().encodeToString(packed);
+
+        Arrays.fill(packed, (byte) 0);
+        return key64;
+    }
+
+    public String savePublicKey() throws GeneralSecurityException {
+        KeyFactory fact = KeyFactory.getInstance("RSA");
+        X509EncodedKeySpec spec = fact.getKeySpec(publicKey, X509EncodedKeySpec.class);
+        return Base64.getEncoder().encodeToString(spec.getEncoded());
+    }
+
+    public void loadPrivateKey(String key64) throws GeneralSecurityException {
+        byte[] clear = Base64.getDecoder().decode(key64);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(clear);
+        KeyFactory fact = KeyFactory.getInstance("RSA");
+        PrivateKey newPrivateKey = fact.generatePrivate(keySpec);
+        Arrays.fill(clear, (byte) 0);
+        this.privateKey = newPrivateKey;
     }
 
 }
